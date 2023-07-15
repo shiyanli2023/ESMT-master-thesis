@@ -1,0 +1,466 @@
+---
+title: "Master Thesis"
+author: "Shiyan Li"
+date: "7/8/2023"
+output: html_document
+---
+```{r}
+library(Hmisc)
+library(rvest)
+library(VIM)
+library(editrules)
+library(deducorrect)
+library(dplyr)
+library(stringr)
+library(magrittr)
+library(jsonlite)
+library(readr)
+```
+
+```{r}
+#data import
+raw_data_A <- read_csv("/Users/Joyce/Desktop/ESMT/Master Thesis/data/data_A.csv")
+raw_data_B <- read_csv("/Users/Joyce/Desktop/ESMT/Master Thesis/data/data_B.csv")
+raw_data_C <- read_csv("/Users/Joyce/Desktop/ESMT/Master Thesis/data/data_C.csv")
+raw_data_D <- read_csv("/Users/Joyce/Desktop/ESMT/Master Thesis/data/data_D.csv")
+raw_data_E <- read_csv("/Users/Joyce/Desktop/ESMT/Master Thesis/data/data_E.csv")
+raw_data_F <- read_csv("/Users/Joyce/Desktop/ESMT/Master Thesis/data/data_F.csv")
+raw_data_G <- read_csv("/Users/Joyce/Desktop/ESMT/Master Thesis/data/data_G.csv")
+raw_data_H <- read_csv("/Users/Joyce/Desktop/ESMT/Master Thesis/data/data_H.csv")
+
+
+```
+
+
+```{r}
+#data clean
+columns_to_remove <- c(2, 3, 6, 8, 9,10)
+
+data_A <- raw_data_A[, -columns_to_remove]
+data_B <- raw_data_B[, -columns_to_remove]
+data_C <- raw_data_C[, -columns_to_remove]
+data_D <- raw_data_D[, -columns_to_remove]
+data_E <- raw_data_E[, -columns_to_remove]
+data_F <- raw_data_F[, -columns_to_remove]
+data_G <- raw_data_G[, -columns_to_remove]
+data_H <- raw_data_H[, -columns_to_remove]
+
+# Extract the first three characters from Average_rating and convert to numeric format
+data_A$Average_rating <- as.numeric(substr(data_A$Average_rating, 1, 3))
+data_B$Average_rating <- as.numeric(substr(data_B$Average_rating, 1, 3))
+data_C$Average_rating <- as.numeric(substr(data_C$Average_rating, 1, 3))
+data_D$Average_rating <- as.numeric(sub("([0-9]+).*", "\\1", data_D$Average_rating))
+data_E$Average_rating <- as.numeric(substr(data_E$Average_rating, 1, 3))
+data_F$Average_rating <- as.numeric(substr(data_F$Average_rating, 1, 3))
+data_G$Average_rating <- as.numeric(substr(data_G$Average_rating, 1, 3))
+data_H$Average_rating <- as.numeric(substr(data_H$Average_rating, 1, 3))
+
+# Extract the first three characters from Rating and convert to numeric format
+data_A$Rating <- as.numeric(substr(data_A$Rating, 1, 3))
+data_B$Rating <- as.numeric(substr(data_B$Rating, 1, 3))
+data_C$Rating <- as.numeric(substr(data_C$Rating, 1, 3))
+data_D$Rating <- as.numeric(substr(data_D$Rating, 1, 3))
+data_E$Rating <- as.numeric(substr(data_E$Rating, 1, 3))
+data_F$Rating <- as.numeric(substr(data_F$Rating, 1, 3))
+data_G$Rating <- as.numeric(substr(data_G$Rating, 1, 3))
+data_H$Rating <- as.numeric(substr(data_H$Rating, 1, 3))
+
+# Replace NA values with 0 and convert the Helpful_count column to numeric format
+data_A$Helpful_count <- as.numeric(ifelse(is.na(data_A$Helpful_count), 0, data_A$Helpful_count))
+data_B$Helpful_count <- as.numeric(ifelse(is.na(data_B$Helpful_count), 0, data_B$Helpful_count))
+data_C$Helpful_count <- as.numeric(ifelse(is.na(data_C$Helpful_count), 0, data_C$Helpful_count))
+data_D$Helpful_count <- as.numeric(ifelse(is.na(data_D$Helpful_count), 0, data_D$Helpful_count))
+data_E$Helpful_count <- as.numeric(ifelse(is.na(data_E$Helpful_count), 0, data_E$Helpful_count))
+data_F$Helpful_count <- as.numeric(ifelse(is.na(data_F$Helpful_count), 0, data_F$Helpful_count))
+data_G$Helpful_count <- as.numeric(ifelse(is.na(data_G$Helpful_count), 0, data_G$Helpful_count))
+data_H$Helpful_count <- as.numeric(ifelse(is.na(data_H$Helpful_count), 0, data_H$Helpful_count))
+```
+
+
+```{r}
+# Add a column to calculate the number of words in Review_content
+data_A$Word_count <- sapply(strsplit(data_A$Review_content, "\\s+"), length)
+data_B$Word_count <- sapply(strsplit(data_B$Review_content, "\\s+"), length)
+data_C$Word_count <- sapply(strsplit(data_C$Review_content, "\\s+"), length)
+data_D$Word_count <- sapply(strsplit(data_D$Review_content, "\\s+"), length)
+data_E$Word_count <- sapply(strsplit(data_E$Review_content, "\\s+"), length)
+data_F$Word_count <- sapply(strsplit(data_F$Review_content, "\\s+"), length)
+data_G$Word_count <- sapply(strsplit(data_G$Review_content, "\\s+"), length)
+data_H$Word_count <- sapply(strsplit(data_H$Review_content, "\\s+"), length)
+
+# Dummy Variable: extreme or moderate review
+data_A <- mutate(data_A, Moderate_review = ifelse(Rating %in% c(3, 4), 1, 0))
+data_B <- mutate(data_B, Moderate_review = ifelse(Rating %in% c(3, 4), 1, 0))
+data_C <- mutate(data_C, Moderate_review = ifelse(Rating %in% c(3, 4), 1, 0))
+data_D <- mutate(data_D, Moderate_review = ifelse(Rating %in% c(3, 4), 1, 0))
+data_E <- mutate(data_E, Moderate_review = ifelse(Rating %in% c(3, 4), 1, 0))
+data_F <- mutate(data_F, Moderate_review = ifelse(Rating %in% c(3, 4), 1, 0))
+data_G <- mutate(data_G, Moderate_review = ifelse(Rating %in% c(3, 4), 1, 0))
+data_H <- mutate(data_H, Moderate_review = ifelse(Rating %in% c(3, 4), 1, 0))
+
+data_A <- mutate(data_A, Extreme_review = ifelse(Rating %in% c(1, 2, 5), 1, 0))
+data_B <- mutate(data_B, Extreme_review = ifelse(Rating %in% c(1, 2, 5), 1, 0))
+data_C <- mutate(data_C, Extreme_review = ifelse(Rating %in% c(1, 2, 5), 1, 0))
+data_D <- mutate(data_D, Extreme_review = ifelse(Rating %in% c(1, 2, 5), 1, 0))
+data_E <- mutate(data_E, Extreme_review = ifelse(Rating %in% c(1, 2, 5), 1, 0))
+data_F <- mutate(data_F, Extreme_review = ifelse(Rating %in% c(1, 2, 5), 1, 0))
+data_G <- mutate(data_G, Extreme_review = ifelse(Rating %in% c(1, 2, 5), 1, 0))
+data_H <- mutate(data_H, Extreme_review = ifelse(Rating %in% c(1, 2, 5), 1, 0))
+
+
+# Add the Helpful_index column to each data frame
+data_A <- mutate(data_A, Helpful_index = round(Helpful_count / sum(Helpful_count) * 100, 2))
+data_B <- mutate(data_B, Helpful_index = round(Helpful_count / sum(Helpful_count) * 100, 2))
+data_C <- mutate(data_C, Helpful_index = round(Helpful_count / sum(Helpful_count) * 100, 2))
+data_D <- mutate(data_D, Helpful_index = round(Helpful_count / sum(Helpful_count) * 100, 2))
+data_E <- mutate(data_E, Helpful_index = round(Helpful_count / sum(Helpful_count) * 100, 2))
+data_F <- mutate(data_F, Helpful_index = round(Helpful_count / sum(Helpful_count) * 100, 2))
+data_G <- mutate(data_G, Helpful_index = round(Helpful_count / sum(Helpful_count) * 100, 2))
+data_H <- mutate(data_H, Helpful_index = round(Helpful_count / sum(Helpful_count) * 100, 2))
+
+
+
+```
+
+
+```{r}
+# Overview of each data frame
+summary(data_A)
+summary(data_B)
+summary(data_C)
+summary(data_D)
+summary(data_E)
+summary(data_F)
+summary(data_G)
+summary(data_H)
+
+
+
+
+# Calculate the average of Word_count in each data frame and assign to variables
+avg_word_A <- mean(data_A$Word_count, na.rm = TRUE)
+avg_word_B <- mean(data_B$Word_count, na.rm = TRUE)
+avg_word_C <- mean(data_C$Word_count, na.rm = TRUE)
+avg_word_D <- mean(data_D$Word_count, na.rm = TRUE)
+avg_word_E <- mean(data_E$Word_count, na.rm = TRUE)
+avg_word_F <- mean(data_F$Word_count, na.rm = TRUE)
+avg_word_G <- mean(data_G$Word_count, na.rm = TRUE)
+avg_word_H <- mean(data_H$Word_count, na.rm = TRUE)
+
+# Calculate the occurrences of values 3 and 4 in the Rating column for each data frame and assign to variables
+moderate_A <- as.numeric(sum(data_A$Rating %in% c(3, 4)))
+moderate_B <- as.numeric(sum(data_B$Rating %in% c(3, 4)))
+moderate_C <- as.numeric(sum(data_C$Rating %in% c(3, 4)))
+moderate_D <- as.numeric(sum(data_D$Rating %in% c(3, 4)))
+moderate_E <- as.numeric(sum(data_E$Rating %in% c(3, 4)))
+moderate_F <- as.numeric(sum(data_F$Rating %in% c(3, 4)))
+moderate_G <- as.numeric(sum(data_G$Rating %in% c(3, 4)))
+moderate_H <- as.numeric(sum(data_H$Rating %in% c(3, 4)))
+
+# Calculate the occurrences of values 1, 2, and 5 in the Rating column for each data frame and assign to variables
+extreme_A <- as.numeric(sum(data_A$Rating %in% c(1, 2, 5)))
+extreme_B <- as.numeric(sum(data_B$Rating %in% c(1, 2, 5)))
+extreme_C <- as.numeric(sum(data_C$Rating %in% c(1, 2, 5)))
+extreme_D <- as.numeric(sum(data_D$Rating %in% c(1, 2, 5)))
+extreme_E <- as.numeric(sum(data_E$Rating %in% c(1, 2, 5)))
+extreme_F <- as.numeric(sum(data_F$Rating %in% c(1, 2, 5)))
+extreme_G <- as.numeric(sum(data_G$Rating %in% c(1, 2, 5)))
+extreme_H <- as.numeric(sum(data_H$Rating %in% c(1, 2, 5)))
+
+```
+
+
+```{r}
+#visualization of distribution of extreme and moderate ratings
+library(ggplot2)
+
+plot_data <- data.frame(
+  Category = c("Extreme", "Moderate"),
+  Count = c(extreme_A, moderate_A, extreme_B, moderate_B, extreme_C, moderate_C, extreme_D, moderate_D, extreme_E, moderate_E, extreme_F, moderate_F, extreme_G, moderate_G, extreme_H, moderate_H),
+  Data = rep(c("A", "B", "C", "D", "E", "F", "G", "H"), each = 2)
+)
+
+ggplot(plot_data, aes(x = Data, y = Count, fill = Category)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(x = "Data", y = "Count", title = "Distribution of Extreme and Moderate Ratings") +
+  scale_fill_manual(values = c("Extreme" = "#1f77b4", "Moderate" = "#ff7f0e")) +
+  theme_minimal()
+
+
+```
+
+```{r}
+# linear regression relationship between helpful count and word count
+word_and_helpful_count_A <- lm(Helpful_count ~ Word_count, data = data_A)
+word_and_helpful_count_B <- lm(Helpful_count ~ Word_count, data = data_B)
+word_and_helpful_count_C <- lm(Helpful_count ~ Word_count, data = data_C)
+word_and_helpful_count_D <- lm(Helpful_count ~ Word_count, data = data_D)
+word_and_helpful_count_E <- lm(Helpful_count ~ Word_count, data = data_E)
+word_and_helpful_count_F <- lm(Helpful_count ~ Word_count, data = data_F)
+word_and_helpful_count_G <- lm(Helpful_count ~ Word_count, data = data_G)
+word_and_helpful_count_H <- lm(Helpful_count ~ Word_count, data = data_H)
+
+# Print the model summaries
+summary(word_and_helpful_count_A)
+summary(word_and_helpful_count_B)
+summary(word_and_helpful_count_C)
+summary(word_and_helpful_count_D)
+summary(word_and_helpful_count_E)
+summary(word_and_helpful_count_F)
+summary(word_and_helpful_count_G)
+summary(word_and_helpful_count_H)
+
+
+combined_data <- rbind(
+  data.frame(Data = "A", data_A),
+  data.frame(Data = "B", data_B),
+  data.frame(Data = "C", data_C),
+  data.frame(Data = "D", data_D),
+  data.frame(Data = "E", data_E),
+  data.frame(Data = "F", data_F),
+  data.frame(Data = "G", data_G),
+  data.frame(Data = "H", data_H)
+)
+
+# Create a plot with facets for each data frame
+ggplot(combined_data, aes(x = Word_count, y = Helpful_count)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Word Count", y = "Helpful Count") +
+  ggtitle("Relationship between word count and helpful count") +
+  facet_wrap(~ Data, ncol = 2)
+library(ggplot2)
+
+
+```
+
+
+```{r}
+
+# Calculate sum and average of Helpful_count in each data frame
+sum_helpful_A <- sum(data_A$Helpful_count, na.rm = TRUE)
+avg_helpful_A <- mean(data_A$Helpful_count, na.rm = TRUE)
+
+sum_helpful_B <- sum(data_B$Helpful_count, na.rm = TRUE)
+avg_helpful_B <- mean(data_B$Helpful_count, na.rm = TRUE)
+
+sum_helpful_C <- sum(data_C$Helpful_count, na.rm = TRUE)
+avg_helpful_C <- mean(data_C$Helpful_count, na.rm = TRUE)
+
+sum_helpful_D <- sum(data_D$Helpful_count, na.rm = TRUE)
+avg_helpful_D <- mean(data_D$Helpful_count, na.rm = TRUE)
+
+sum_helpful_E <- sum(data_E$Helpful_count, na.rm = TRUE)
+avg_helpful_E <- mean(data_E$Helpful_count, na.rm = TRUE)
+
+sum_helpful_F <- sum(data_F$Helpful_count, na.rm = TRUE)
+avg_helpful_F <- mean(data_F$Helpful_count, na.rm = TRUE)
+
+sum_helpful_G <- sum(data_G$Helpful_count, na.rm = TRUE)
+avg_helpful_G <- mean(data_G$Helpful_count, na.rm = TRUE)
+
+sum_helpful_H <- sum(data_H$Helpful_count, na.rm = TRUE)
+avg_helpful_H <- mean(data_H$Helpful_count, na.rm = TRUE)
+
+# Calculate the ratio of Helpful_count values relative to the total number of rows for each data frame
+helpful_ratio_A <- sum(data_A$Helpful_count) / nrow(data_A)
+helpful_ratio_B <- sum(data_B$Helpful_count) / nrow(data_B)
+helpful_ratio_C <- sum(data_C$Helpful_count) / nrow(data_C)
+helpful_ratio_D <- sum(data_D$Helpful_count) / nrow(data_D)
+helpful_ratio_E <- sum(data_E$Helpful_count) / nrow(data_E)
+helpful_ratio_F <- sum(data_F$Helpful_count) / nrow(data_F)
+helpful_ratio_G <- sum(data_G$Helpful_count) / nrow(data_G)
+helpful_ratio_H <- sum(data_H$Helpful_count) / nrow(data_H)
+
+#Visualize and compare for Hypothesis 1A
+comparison_data <- data.frame(
+  Data = c("A", "B", "C", "D", "E", "F", "G", "H"),
+  Helpful_Ratio = c(
+    helpful_ratio_A,
+    helpful_ratio_B,
+    helpful_ratio_C,
+    helpful_ratio_D,
+    helpful_ratio_E,
+    helpful_ratio_F,
+    helpful_ratio_G,
+    helpful_ratio_H
+  )
+)
+
+ggplot2::ggplot(comparison_data, aes(x = Data, y = Helpful_Ratio)) +
+  ggplot2::geom_bar(stat = "identity", fill = "steelblue") +
+  ggplot2::labs(x = "Data", y = "Helpful Ratio", title = "Comparison of Helpful Ratios")
+
+
+```
+
+
+```{r}
+# Linear regression: Extreme_review and Helpful_index
+coefficient_extreme <- vector("numeric", length = 8)
+coefficient_moderate <- vector("numeric", length = 8)
+
+for (i in 1:8) {
+  data <- get(paste0("data_", LETTERS[i]))
+  
+  lm_extreme <- lm(Helpful_index ~ Extreme_review, data = data)
+  summary_extreme <- summary(lm_extreme)
+  
+  lm_moderate <- lm(Helpful_index ~ Moderate_review, data = data)
+  summary_moderate <- summary(lm_moderate)
+  
+  coefficient_extreme[i] <- coef(lm_extreme)["Extreme_review"]
+  coefficient_moderate[i] <- coef(lm_moderate)["Moderate_review"]
+}
+
+
+coefficient_extreme
+coefficient_moderate
+
+```
+```{r}
+# H1B & H1C: Visualization of coefficients for Moderate_review separately for search and experience products
+coefficients_moderate_AtoD <- coefficient_moderate[1:4]
+coefficients_moderate_EtoH <- coefficient_moderate[5:8]
+
+data_names_AtoD <- paste0("Data_", LETTERS[1:4])
+data_names_EtoH <- paste0("Data_", LETTERS[5:8])
+
+plot_data_AtoD <- data.frame(Data = data_names_AtoD, Coefficient = coefficients_moderate_AtoD)
+plot_data_EtoH <- data.frame(Data = data_names_EtoH, Coefficient = coefficients_moderate_EtoH)
+
+# for search product
+ggplot(plot_data_AtoD, aes(x = Data, y = Coefficient)) +
+  geom_line(color = "red") +
+  geom_point(color = "red", size = 3) +
+  labs(x = "Product", y = "Coefficient", title = "Coefficients from Linear Regression of Search Products (Moderate_review)") +
+  theme_minimal()
+
+# for experience product 
+ggplot(plot_data_EtoH, aes(x = Data, y = Coefficient)) +
+  geom_line(color = "blue") +
+  geom_point(color = "blue", size = 3) +
+  labs(x = "Product", y = "Coefficient", title = "Coefficients from Linear Regression of Experience Products (Moderate_review)") +
+  theme_minimal()
+
+```
+
+
+```{r}
+# H2: Visualization of coefficients for Moderate_review separately for popular and non-popular products
+coefficient_moderate_popular <- c(coefficient_moderate[1], coefficient_moderate[3], coefficient_moderate[5], coefficient_moderate[7])
+coefficient_moderate_nonpopular <- c(coefficient_moderate[2], coefficient_moderate[4], coefficient_moderate[6], coefficient_moderate[8])
+
+data_names_popular <- c("A", "C", "E", "G")
+data_names_nonpopular <- c("B", "D", "F", "H")
+
+plot_data_popular <- data.frame(Data = data_names_popular, Coefficient = coefficient_moderate_popular)
+plot_data_nonpopular <- data.frame(Data = data_names_nonpopular, Coefficient = coefficient_moderate_nonpopular)
+
+library(ggplot2)
+ggplot(plot_data_popular, aes(x = Data, y = Coefficient)) +
+  geom_line(color = "red") +
+  geom_point(color = "red", size = 3) +
+  labs(x = "Product", y = "Coefficient", title = "Coefficients from Linear Regression of Popular Products (Moderate_review)") +
+
+  theme_minimal()
+
+ggplot(plot_data_nonpopular, aes(x = Data, y = Coefficient)) +
+  geom_line(color = "blue") +
+  geom_point(color = "blue", size = 3) +
+  ggtitle("Coeffients from  ") +
+  labs(x = "Product", y = "Coefficient", title = "Coefficients from Linear Regression of Niche Products (Moderate_review)") +
+
+  theme_minimal()
+
+
+```
+
+```{r}
+#H3: sales and reviews
+##Overview of all product data
+summary_list <- list()
+
+for (i in 1:8) {
+  data <- get(paste0("data_", LETTERS[i]))
+  summary <- summarize(data, 
+                       Observation= nrow(data),
+                       Average_rating = mean(Average_rating),
+                       Average_Helpful_count = mean(Helpful_count),
+                       Average_Word_count = mean(Word_count))
+  summary_list[[i]] <- summary
+}
+
+summary_table <- bind_rows(summary_list, .id = "Product")
+
+summary_table$Product <- paste0("Product ", LETTERS[1:8])
+
+summary_table <- summary_table[, c("Product", "Observation","Average_rating", 
+                                   "Average_Helpful_count", "Average_Word_count")]
+
+##Import Sales data 
+summary_table <- summary_table %>% mutate(sales = as.numeric(c(8000, 500, 4000, 50, 700, 50, 700, 50)))
+
+#import total rating and reviews data
+summary_table <- summary_table %>%
+  mutate(total_ratings = as.numeric(c(20414, 114, 672, 45, 22, 23807, 2631, 244)),
+         total_reviews = as.numeric(c(3178, 37, 371, 24, 18, 1688, 1618, 82)))
+
+summary_table <- summary_table %>%
+  mutate(sales_per_rating = sales / total_ratings) %>%
+  mutate(sales_per_review = sales / total_reviews)
+
+
+summary_table
+
+```
+
+```{r}
+
+# Correlation: total_ratings and sales and total reviews and sales 
+plot(summary_table$total_ratings, summary_table$sales, 
+     xlab = "Total Ratings", ylab = "Sales",
+     main = "Relationship between Sales and Total Ratings")
+
+text(summary_table$total_ratings, summary_table$sales, 
+     labels = LETTERS[1:8], pos = 4, cex = 0.8)
+
+
+abline(0, 1)
+
+plot(summary_table$total_reviews, summary_table$sales, 
+     xlab = "Total Reviews", ylab = "Sales",
+     main = "Relationship between Sales and Total Reviews")
+
+text(summary_table$total_reviews, summary_table$sales, 
+     labels = LETTERS[1:8], pos = 4, cex = 0.8)
+
+# Add a line y = x
+abline(0, 1)
+
+```
+
+```{r}
+library(ggplot2)
+
+# Create a new column for sales per rating
+summary_table$sales_per_rating <- summary_table$sales / summary_table$total_ratings
+
+# Create a combined data frame
+combined_data <- rbind(
+  data.frame(Product = summary_table$Product, Metric = "Sales per Review", Value = summary_table$sales_per_review),
+  data.frame(Product = summary_table$Product, Metric = "Sales per Rating", Value = summary_table$sales_per_rating)
+)
+
+# Dot chart for sales per review and sales per rating
+ggplot(combined_data, aes(x = Product, y = Value, fill = Metric)) +
+  geom_dotplot(binaxis = "y", stackdir = "center", dotsize = 5, binwidth = 0.3) +
+  labs(x = "Product", y = "Value", fill = "Metric") +
+  ggtitle("Sales per Review and Sales per Rating for Each Product") +
+  theme(legend.position = "bottom")
+
+
+
+```
+
+
